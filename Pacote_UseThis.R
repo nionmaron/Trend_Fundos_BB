@@ -19,7 +19,9 @@ usethis::use_git()
 # Associar o diretório do projeto a um repositório GitHub
 usethis::use_github()
 
-#
+# Criar read.me
+usethis::use_readme_md()
+
 #usethis::use_mit_license("My Name")
 
 # pens global (user-level) gitignore file and ensures its path is declared in your global Git config.
@@ -37,7 +39,6 @@ usethis::edit_r_environ()
 usethis::pr_init(branch)
 
 system("git push origin master")
-
 
 usethis::use_git_remote("origin", url = NULL, overwrite = TRUE)
 pr_init(branch)
