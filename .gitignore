@@ -2,10 +2,11 @@
 .Rhistory
 .RData
 .Ruserdata
-Pacote_UseThis.R
-My_Investment_Inputs/
-Complemento/
 .Rdata
 .httr-oauth
 .DS_Store
 .quarto
+
+Pacote_UseThis
+My_Investment_Inputs/
+Complemento/

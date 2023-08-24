@@ -7,8 +7,6 @@ library(dplyr)
 library(lubridate)
 
 
-
-
 # planilha Resumo
 List_funds<-read_xlsx("Quote_History_BB/#LISTA_FUNDOS.xlsx")
 
@@ -17,13 +15,12 @@ for (ff in 1:nrow(List_funds)) {
   if(!is.na(List_funds$Nome_Arquivo[ff])){
     print(paste("Linha:",ff,List_funds$Nome_Do_Fundo[ff]))
     Link_Read<-paste0("Quote_History_BB/",List_funds$Nome_Arquivo[ff],".xlsx")
-  
     
     # ler Arquivo
     print(Link_Read)
     tab_price<-read_xlsx(Link_Read) %>% arrange((Data))
     
-    #tab_price<-read_xlsx("Quote_History_BB/BB Acoes Small Caps.xlsx") %>% arrange((Data))
+    tab_price<-read_xlsx("Quote_History_BB/BB Acoes Dividendos Midcaps FIC FI.xlsx") %>% arrange((Data))
     tab_price$Open<-tab_price$Cota
     
     diferenca_anos <- as.numeric(difftime(max(tab_price$Data), min(tab_price$Data), units = "weeks") / 52.25)
@@ -35,7 +32,6 @@ for (ff in 1:nrow(List_funds)) {
     
     gfgf<- cumsum(tab_price$Captação) - cumsum(tab_price$Resgate)
     plot(gfgf)
-    
     
     tab_price$p_Value<-0
     tab_price$TAU<-0
@@ -60,7 +56,7 @@ for (ff in 1:nrow(List_funds)) {
       tab_price$TAU_Money[ii]     <-round(Trend_Money$tau[1],5)
       tab_price$p_Value_Money[ii] <-round(Trend_Money$sl[1],5)
       
-      print(ii)
+      #print(ii)
       
       ##########################################################
       # Trend Quote
@@ -148,7 +144,7 @@ for (ff in 1:nrow(List_funds)) {
       Gain_By_Year02<-round(((Soma02/tab_price$Open[1]*100)/Time_Buy02)*0.77,2) # 0.77 23% de imposto estimativa Iof e IR
       Gain_By_Year02
       
-      plot(cumsum(tab_price$Sum_Trend_Money[]))
+      #plot(cumsum(tab_price$Sum_Trend_Money[]))
       
       #Trend Quote and Money
       for (dd in 81:nrow(tab_price)) {
@@ -164,17 +160,23 @@ for (ff in 1:nrow(List_funds)) {
       Time_Buy03
       
       Soma03<-sum(tab_price$Sum_Trend_Quote_and_Money,na.rm = TRUE)
+      Soma03<-Soma03*ifelse(Soma03>=0,0.77,1) # 0.77 23% de imposto estimativa IOF e IR
       Soma03
-      
-      Gain_By_Year03<-round(((Soma03/tab_price$Open[1]*100)/Time_Buy03)*0.77,2) # 0.77 23% de imposto estimativa Iof e IR
+
+      Gain_By_Year03<-round(((Soma03/tab_price$Open[1]*100)/Time_Buy03),2)
       Gain_By_Year03
       
       plot(cumsum(tab_price$Sum_Trend_Quote_and_Money[]))
       
       # Grafico Geral
-      plot(tab_price$Open)
+      #plot(tab_price$Open)
+      EST_01<-ifelse(tab_price$status[nrow(tab_price)]=="comprado","comprado","neutro")
+      EST_03<-ifelse(tab_price$status[nrow(tab_price)]=="comprado" & tab_price$Signal_Money[nrow(tab_price)] == "Cash in","comprado","neutro")
       
       Tabela_Resumo00<-data_frame("Nome Do Fundo"=tab_price$Fundo[ff],
+                                  "Última Data"=tab_price$Data[nrow(tab_price)],
+                                  "Estratégia01"=EST_01,
+                                  "Estratégia03"=EST_03,
                                   "Tempo do Histórico"=diferenca_anos,
                                   "Tempo de Investimento Est01"=Time_Buy01,
                                   "Desempenho por Ano Est01"=Gain_By_Year01,
@@ -190,128 +192,109 @@ for (ff in 1:nrow(List_funds)) {
 
 }
 
+mean(Tabela_Resumo$`Desempenho por Ano Est01`)
+mean(Tabela_Resumo$`Desempenho por Ano Est03`)
 
-saveRDS(Tabela_Resumo,"resumo.rds")
-
-tab_price<-read_xlsx("Quote_History_BB/BB Multimercado Multigestor.xlsx") %>% arrange((Data))
-
-tab_price$Open<-tab_price$Cota
+saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," - Desempenho Fundos BB.rds"))
 
 
-gfgf<- cumsum(tab_price$Captação) - cumsum(tab_price$Resgate)
 
-tab_price$gfgf<- gfgf
 
-plot(gfgf)
 
-tab_price$p_Value<-0
-tab_price$TAU<-0
-tab_price$status<-NA
-tab_price$estationary<-NA
+Result<- function(X,ESTRATEGIA){
+}
 
-for (ii in 61: nrow(tab_price)) {
-  
-  result <- Kendall::MannKendall(tab_price$Open[(ii-30):(ii)])
-  result <- Kendall::MannKendall(tab_price$Open[(ii-30):(ii)])
-  
-  #tste_est<-adf.test(tab_price$Open[(ii-500):(ii)])
-  #tab_price$estationary[ii]<- tste_est$p.value[1]
-  tab_price$TAU[ii]<-round(result$tau[1],5)
-  tab_price$p_Value[ii]<-round(result$sl[1],5)
-  print(ii)
-  if (result$sl[1] < 0.05) {
+
+# Criando um exemplo de data.frame
+df <- tab_price
+
+ESTRATEGIA<-3
+if(ESTRATEGIA==1){df$status <-ifelse( df$status == 'comprado',"comprado","neutro")}
+if(ESTRATEGIA==3){df$status <-ifelse(df$Signal_Money == "Cash in" & df$status == 'comprado',"comprado","neutro")}
+
+transacoes <- data.frame(data_entrada=as.Date(character()), preco_entrada=numeric(), data_saida=as.Date(character()), preco_saida=numeric())
+compra_ativa <- FALSE
+data_entrada <- NA
+preco_entrada <- NA
+
+
+for (i in 1:nrow(df)) {
+  if(!is.na(df$status[i])){
+  if (df$status[i] == 'comprado' && !compra_ativa) {
+    print(i)
+    compra_ativa <- TRUE
+    data_entrada <- df$Data[i]
+    preco_entrada <- df$Open[i]
+  } else if ((df$status[i] == 'neutro' || i == nrow(df)) && compra_ativa) {
+    data_saida <- df$Data[i]
+    preco_saida <- df$Open[i]
     
-    # Verifique se a tendência é de alta ou baixa
-    if (result$tau > 0) {
-      print("A série temporal está em tendência de alta significativa.")
-      status <- "comprado"
-    } else {
-      print("A série temporal está em tendência de baixa significativa.")
-      status <- "neutro"
-    }
+    transacao <- data.frame(data_entrada=data_entrada, preco_entrada=preco_entrada, data_saida=data_saida, preco_saida=preco_saida)
+    transacoes <- rbind(transacoes, transacao)
     
-  } else {
-    print("A série temporal não tem uma tendência significativa.")
-    status <- "neutro"
+    # Reset
+    compra_ativa <- FALSE
+    data_entrada <- NA
+    preco_entrada <- NA
   }
-  
-  tab_price$status[ii] <- status
-  
+}
 }
 
-
-############################################################################
-tab_price$status2<-NA
-tab_price$sum<-0
-
-for (dd in 81:nrow(tab_price)) {
-  dd
-  if(!is.na(tab_price$status[dd])){
-    if(tab_price$status[dd]=="comprado"){tab_price$sum[dd] <-   tab_price$Open[dd+1]-tab_price$Open[dd]}
-    if(tab_price$status[dd]=="vendido"){tab_price$sum[dd]  <- -(tab_price$Open[dd+1]-tab_price$Open[dd])}
-    
-    if((tab_price$status[dd]=="neutro") & (tab_price$status[dd-1]=="vendido")){tab_price$status2[dd]<-"comprado"}
-    if((tab_price$status[dd]=="neutro") & (tab_price$status[dd-1]=="comprado")){tab_price$status2[dd]<-"vendido"}
-    if((tab_price$status[dd]=="neutro") & (tab_price$status[dd-1]=="neutro")){tab_price$status2[dd]<-tab_price$status2[dd-1]}
+# Calculando a valorização
+transacoes$tempo_dias           <- as.numeric(difftime(transacoes$data_saida,transacoes$data_entrada, units = "days"))
+transacoes$tempo_anos           <- as.numeric(difftime(transacoes$data_saida,transacoes$data_entrada, units = "weeks") / 52.25)
+transacoes$valorizacao          <- (transacoes$preco_saida - transacoes$preco_entrada) / transacoes$preco_entrada * 100
+transacoes$valorizacao_ajustada <-transacoes$valorizacao
+#IOF e IR
+for (kk in 1:nrow(transacoes)) {
+  
+  if(transacoes$valorizacao[kk]>0 & transacoes$tempo_dias[kk]>30){
+    transacoes$valorizacao_ajustada[kk]<-transacoes$valorizacao_ajustada[kk]*0.85
   }
   
-}
-
-sum(tab_price$sum,na.rm = TRUE)
-plot(cumsum(tab_price$sum[]))
-
-plot(tab_price$Open)
-
-
-tab_price$sum2<-0
-
-for (dd in 1:nrow(tab_price)) {
-  if(!is.na(tab_price$status2[dd])){
-    if(tab_price$status2[dd]=="comprado"){tab_price$sum2[dd] <-   tab_price$Open[dd+1]-tab_price$Open[dd]}
-    if(tab_price$status2[dd]=="vendido"){tab_price$sum2[dd]  <- -(tab_price$Open[dd+1]-tab_price$Open[dd])}
-    
+  if(transacoes$valorizacao[kk]>0 & transacoes$tempo_dias[kk]<=30){
+    transacoes$valorizacao_ajustada[kk]<-transacoes$valorizacao_ajustada[kk]*0.85*transacoes$tempo_dias[kk]/30 # IR e IOF
   }
   
 }
+#transacoes$valorizacao_media <-transacoes$valorizacao/transacoes$tempo_anos
+
+transacoes$acumulado <- cumprod(1+transacoes$valorizacao/100)
+transacoes$acumulado_ajustado <- cumprod(1+transacoes$valorizacao_ajustada/100)
 
 
-sum(tab_price$sum2, na.rm = TRUE)
-plot(cumsum(tab_price$sum2[]))
+Time_Year<-sum(transacoes$tempo_anos)
+Time_Year
+Rendimento_Month<-round(((transacoes$acumulado_ajustado[nrow(transacoes)])^(1/(sum(transacoes$tempo_anos)*12))-1)*100,2)
+Rendimento_Month
+Rendimento_Year<-round(((transacoes$acumulado_ajustado[nrow(transacoes)])^(1/sum(transacoes$tempo_anos))-1)*100,2)
+Rendimento_Year
+
+Simulação_Invest<- data_frame(
+  "Fundo"="",
+  "Estratégia"="",
+  "Tempo de Investimento (anos)"=Time_Year,
+  "Rendimento por Mês"=Rendimento_Month,
+  "Rendimento por Ano" = Rendimento_Year)
+Simulação_Invest
+print((transacoes$acumulado_ajustado[nrow(transacoes)]-1)*100)
 
 
 
-####################################################
-# Adicione uma coluna de tempo ao seu dataframe
-tab_price$time <- 1:nrow(tab_price)
-tab_price$slope<-"neutro"
 
 
-for (dd in 61:nrow(tab_price)) {
-  # Ajuste o modelo de regressão linear
-  model <- lm(TAU ~ time, data = tab_price[(dd-7):(dd),])
-  
-  # Obtenha a inclinação da linha de regressão
-  slope <- coef(model)[2]
-  
-  # Tomar decisão de compra ou venda com base na inclinação
-  if (slope > 0) {
-    tab_price$slope[dd]<-"comprado"
-  } else {
-    print("Vender!")
-    tab_price$slope[dd]<-"vendido"
-  }
-}
 
-tab_price$sum3<-0
-for (dd in 1:nrow(tab_price)) {
-  print(dd)
-  if(!is.na(tab_price$slope[dd])){
-    if(tab_price$slope[dd]=="comprado" & tab_price$p_Value[dd] < 0.01 & tab_price$TAU[dd]>0){tab_price$sum3[dd] <-   tab_price$Open[dd+1]-tab_price$Open[dd]}
-    #if(tab_price$slope[dd]=="vendido" & tab_price$p_Value[dd]  < 0.01 & tab_price$TAU[dd]<0){tab_price$sum3[dd]  <- -(tab_price$Open[dd+1]-tab_price$Open[dd])}
-  }
-}
 
-sum(tab_price$sum3, na.rm = TRUE)
-plot(cumsum(tab_price$sum3[]))
-plot(tab_price$Open)
+
+
+
+
+
+
+
+
+
+
+
+
 
