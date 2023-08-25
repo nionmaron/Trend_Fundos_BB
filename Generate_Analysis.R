@@ -6,6 +6,9 @@ library(Kendall)
 library(dplyr)
 library(lubridate)
 
+source("Function_Simulation_Invest.R")
+
+
 
 # planilha Resumo
 List_funds<-read_xlsx("Quote_History_BB/#LISTA_FUNDOS.xlsx")
@@ -20,7 +23,7 @@ for (ff in 1:nrow(List_funds)) {
     print(Link_Read)
     tab_price<-read_xlsx(Link_Read) %>% arrange((Data))
     
-    tab_price<-read_xlsx("Quote_History_BB/BB Acoes Dividendos Midcaps FIC FI.xlsx") %>% arrange((Data))
+    #tab_price<-read_xlsx("Quote_History_BB/BB Acoes Dividendos Midcaps FIC FI.xlsx") %>% arrange((Data))
     tab_price$Open<-tab_price$Cota
     
     diferenca_anos <- as.numeric(difftime(max(tab_price$Data), min(tab_price$Data), units = "weeks") / 52.25)
@@ -60,7 +63,7 @@ for (ff in 1:nrow(List_funds)) {
       
       ##########################################################
       # Trend Quote
-      if (result$sl[1] < 0.05) {
+      if (result$sl[1] < 120) { # pvlue 00.1
         
         # Verifique se a tendência é de alta ou baixa
         if (result$tau > 0) {
@@ -76,7 +79,7 @@ for (ff in 1:nrow(List_funds)) {
       
       ##########################################################
       # Trend Money 
-      if (Trend_Money$sl[1] < 0.05) {
+      if (Trend_Money$sl[1] < 120) {
         # Verifique se a tendência é de alta ou baixa
         if (Trend_Money$tau > 0) {
           Signal_Money <- "Cash in"
@@ -173,15 +176,7 @@ for (ff in 1:nrow(List_funds)) {
       EST_01<-ifelse(tab_price$status[nrow(tab_price)]=="comprado","comprado","neutro")
       EST_03<-ifelse(tab_price$status[nrow(tab_price)]=="comprado" & tab_price$Signal_Money[nrow(tab_price)] == "Cash in","comprado","neutro")
       
-      Tabela_Resumo00<-data_frame("Nome Do Fundo"=tab_price$Fundo[ff],
-                                  "Última Data"=tab_price$Data[nrow(tab_price)],
-                                  "Estratégia01"=EST_01,
-                                  "Estratégia03"=EST_03,
-                                  "Tempo do Histórico"=diferenca_anos,
-                                  "Tempo de Investimento Est01"=Time_Buy01,
-                                  "Desempenho por Ano Est01"=Gain_By_Year01,
-                                  "Tempo de Investimento Est03"=Time_Buy03,
-                                  "Desempenho por Ano Est03"=Gain_By_Year03)
+      Tabela_Resumo00<-Result_Invest(tab_price,3)
       #
       
       if(ff==1){Tabela_Resumo<-Tabela_Resumo00
@@ -192,17 +187,12 @@ for (ff in 1:nrow(List_funds)) {
 
 }
 
-mean(Tabela_Resumo$`Desempenho por Ano Est01`)
-mean(Tabela_Resumo$`Desempenho por Ano Est03`)
 
-saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," - Desempenho Fundos BB.rds"))
+saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," - Desempenho Fundos BB EST01 sem pvlue.rds"))
 
 
 
 
-
-Result<- function(X,ESTRATEGIA){
-}
 
 
 # Criando um exemplo de data.frame
@@ -271,11 +261,12 @@ Rendimento_Year<-round(((transacoes$acumulado_ajustado[nrow(transacoes)])^(1/sum
 Rendimento_Year
 
 Simulação_Invest<- data_frame(
-  "Fundo"="",
-  "Estratégia"="",
+  "Fundo"=df$Fundo[1],
+  "Estratégia"=ESTRATEGIA,
   "Tempo de Investimento (anos)"=Time_Year,
   "Rendimento por Mês"=Rendimento_Month,
   "Rendimento por Ano" = Rendimento_Year)
+
 Simulação_Invest
 print((transacoes$acumulado_ajustado[nrow(transacoes)]-1)*100)
 
