@@ -5,7 +5,7 @@ library(rvest)
 
 ########################################################################################
 #
-
+#https://www.bb.com.br/uci/fundos.html
 # URL do site alvo
 url <- "https://www37.bb.com.br/portalbb/tabelaRentabilidade/rentabilidade/gfi7,802,9085,9089,1.bbx"
 
