@@ -1,7 +1,20 @@
 
 
 
-Result_Invest<- function(X,ESTRATEGIA,Time_Analise){
+# Função de classificação
+classify_rendimento <- function(Rendimento,Rendimento_Referencia,Redimento_Fundo) {
+  if (Rendimento < Rendimento_Referencia) {
+    return("Bad")
+  } else if (Rendimento > Rendimento_Referencia && Rendimento < Redimento_Fundo) {
+    return("Neutral")
+  } else {
+    return("Good")
+  }
+}
+classify_rendimento(2.2,6,3)
+
+
+Result_Invest<- function(X,ESTRATEGIA,Time_Analise, ID="-"){
   # Criando um exemplo de data.frame
   df <- X
   
@@ -59,23 +72,22 @@ Result_Invest<- function(X,ESTRATEGIA,Time_Analise){
   transacoes$acumulado <- cumprod(1+transacoes$valorizacao/100)
   transacoes$acumulado_ajustado <- cumprod(1+transacoes$valorizacao_ajustada/100)
   
-  
   Time_Year<-sum(transacoes$tempo_anos)
-  Time_Year
   Rendimento_Month<-round(((transacoes$acumulado_ajustado[nrow(transacoes)])^(1/(sum(transacoes$tempo_anos)*12))-1)*100,2)
-  Rendimento_Month
   Rendimento_Year<-round(((transacoes$acumulado_ajustado[nrow(transacoes)])^(1/sum(transacoes$tempo_anos))-1)*100,2)
-  Rendimento_Year
-  
   diferenca_anos <- as.numeric(difftime(max(df$Data), min(df$Data), units = "weeks") / 52.25)
-  diferenca_anos
   
   Rendimento_fund<- round((((df$Cota[nrow(df)] - df$Cota[1])/df$Cota[1]+1)^(1/diferenca_anos)-1)*100,2)
-  Rendimento_fund
+  
   if(Rendimento_fund>0){Rendimento_fund<-Rendimento_fund*0.85}
   #plot(df$Cota)
+  yield_rating<-classify_rendimento(Rendimento_Year,6,Rendimento_fund)
+  
+  
+  # Start buying  / Buy  / Sell
   
   Simulation_Invest<- data_frame(
+    "ID"= ID,
     "Fundo"=df$Fundo[1],
     "Estratégia"=ESTRATEGIA,
     "Tempo de Análise (Trend)"=Time_Analise,
@@ -85,7 +97,11 @@ Result_Invest<- function(X,ESTRATEGIA,Time_Analise){
     "Rendimento por Ano" = Rendimento_Year,
     "Tempo Do Fundo"=  diferenca_anos,
     "Redimento do Fundo (por ano)"=Rendimento_fund,
-    "Classificação da Estratégia"= ifelse(Rendimento_Year>Rendimento_fund,"Boa","Ruim"))
+    "Classificação da Estratégia"= yield_rating,
+    "Last Date"= df$Data[nrow(df)],
+    "Last Trend Quote"= df$status[nrow(df)],
+    "Last Trend Equity"= df$Signal_Money[nrow(df)],
+    "Decision"="")
   
   return(Simulation_Invest)
   

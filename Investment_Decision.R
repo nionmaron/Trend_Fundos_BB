@@ -24,7 +24,8 @@ List_funds<-read_xlsx("Quote_History_BB/#LISTA_FUNDOS.xlsx")
 for (ff in 1:nrow(List_funds)) {
   if(!is.na(List_funds$Nome_Arquivo[ff])){
     #ff<-2
-    print(paste("Linha:",ff,List_funds$Nome_Do_Fundo[ff]))
+    ID00<-List_funds$ID[ff]
+    print(paste("Linha:",ff,List_funds$ID[ff],List_funds$Nome_Do_Fundo[ff]))
     Link_Read<-paste0("Quote_History_BB/",List_funds$Nome_Arquivo[ff],".xlsx")
     
     # ler Arquivo
@@ -151,14 +152,15 @@ for (ff in 1:nrow(List_funds)) {
         
         if(eest==1){plot(cumsum(tab_price$sum[]))}
         if(eest==3){plot(cumsum(tab_price$Sum_Trend_Quote_and_Money[]))}
-        Sys.sleep(5)
+
         
         # Grafico Geral
-        plot(tab_price$Open)
+        #plot(tab_price$Open)
         EST_01<-ifelse(tab_price$status[nrow(tab_price)]=="comprado","comprado","neutro")
         EST_03<-ifelse(tab_price$status[nrow(tab_price)]=="comprado" & tab_price$Signal_Money[nrow(tab_price)] == "Cash in","comprado","neutro")
         
-        Tabela_Resumo00<-Result_Invest(tab_price,eest,ddd)
+        print("concluido etapa 01")
+        Tabela_Resumo00<-Result_Invest(tab_price,eest,ddd,ID=ID00)
         #
         
         if(ff==1){Tabela_Resumo<-Tabela_Resumo00
@@ -174,6 +176,6 @@ for (ff in 1:nrow(List_funds)) {
 sum((Tabela_Resumo$`Tempo de Investimento (anos)`/sum(Tabela_Resumo$`Tempo de Investimento (anos)`))*Tabela_Resumo$`Rendimento por Ano`)
 sum((Tabela_Resumo$`Tempo Do Fundo`/sum(Tabela_Resumo$`Tempo Do Fundo`))*Tabela_Resumo$`Redimento do Fundo (por ano)`)
 
-saveRDS(Tabela_Resumo,"PerformanceStrategies/Investiment_Decision.rds")
+saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date(),"Investiment_Decisionrr.rds"))
 
 

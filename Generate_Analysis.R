@@ -23,7 +23,8 @@ List_funds<-read_xlsx("Quote_History_BB/#LISTA_FUNDOS.xlsx")
 # inicio Looping Análise
 for (ff in 1:nrow(List_funds)) {
   if(!is.na(List_funds$Nome_Arquivo[ff])){
-    print(paste("Linha:",ff,List_funds$Nome_Do_Fundo[ff]))
+    ID00<-List_funds$ID[ff]
+    print(paste("Linha:",ff,List_funds$ID[ff],List_funds$Nome_Do_Fundo[ff]))
     Link_Read<-paste0("Quote_History_BB/",List_funds$Nome_Arquivo[ff],".xlsx")
     
     # ler Arquivo
@@ -154,7 +155,7 @@ for (ff in 1:nrow(List_funds)) {
       EST_01<-ifelse(tab_price$status[nrow(tab_price)]=="comprado","comprado","neutro")
       EST_03<-ifelse(tab_price$status[nrow(tab_price)]=="comprado" & tab_price$Signal_Money[nrow(tab_price)] == "Cash in","comprado","neutro")
       
-      Tabela_Resumo00<-Result_Invest(tab_price,eest,ddd)
+      Tabela_Resumo00<-Result_Invest(tab_price,eest,ddd,ID=ID00)
       #
       
       if(ff==1 & ddd==6){Tabela_Resumo<-Tabela_Resumo00
