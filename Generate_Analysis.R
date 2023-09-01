@@ -22,6 +22,7 @@ List_funds<-read_xlsx("Quote_History_BB/#LISTA_FUNDOS.xlsx")
 
 # inicio Looping Análise
 for (ff in 1:nrow(List_funds)) {
+  #ff<-6
   if(!is.na(List_funds$Nome_Arquivo[ff])){
     ID00<-List_funds$ID[ff]
     print(paste("Linha:",ff,List_funds$ID[ff],List_funds$Nome_Do_Fundo[ff]))
@@ -30,6 +31,9 @@ for (ff in 1:nrow(List_funds)) {
     # ler Arquivo
     print(Link_Read)
     tab_price<-read_xlsx(Link_Read) %>% arrange((Data))
+    
+    
+    tab_price<-tab_price[tab_price$Data>(Sys.Date() -5*365 -90),]}
     
     #tab_price<-read_xlsx("Quote_History_BB/BB Acoes Dividendos Midcaps FIC FI.xlsx") %>% arrange((Data))
     tab_price$Open<-tab_price$Cota
@@ -45,8 +49,11 @@ for (ff in 1:nrow(List_funds)) {
     # plot(gfgf)
 
     for (ddd in 6:40) {
+      #ddd<-
     for (eest in c(1,3)) {
-    ddd
+      
+    print(paste("Linha:",ff," |Trend Time:",ddd,"|EST:",eest))
+ 
     tab_price$p_Value<-0
     tab_price$TAU<-0
     tab_price$status<-NA
@@ -155,8 +162,19 @@ for (ff in 1:nrow(List_funds)) {
       EST_01<-ifelse(tab_price$status[nrow(tab_price)]=="comprado","comprado","neutro")
       EST_03<-ifelse(tab_price$status[nrow(tab_price)]=="comprado" & tab_price$Signal_Money[nrow(tab_price)] == "Cash in","comprado","neutro")
       
-      Tabela_Resumo00<-Result_Invest(tab_price,eest,ddd,ID=ID00)
-      #
+      ###########################################################
+      # INVESTMENT_TABLE=tab_price,STRATEGY=eest,TREND_TIME=ddd,IDENTIFICATION=ID00,ANALYSIS_TIME=NA,QUOTE_START=0,QUOTE_END=0,CASH_WITHDRAWAL=0,INCOME_TAX=0
+      INVESTMENT_RISK<-List_funds$INVESTMENT_RISK[ff]
+      Tabela_Resumo00<-Result_Invest(INVESTMENT_TABLE=tab_price,
+                                     STRATEGY=eest,
+                                     TREND_TIME=ddd,
+                                     IDENTIFICATION=ID00,
+                                     ANALYSIS_TIME=NA,
+                                     QUOTE_START=ifelse(is.na(List_funds$QUOTE_START[ff]),0,List_funds$QUOTE_START[ff]),
+                                     QUOTE_END=ifelse(is.na(List_funds$QUOTE_END[ff]),0,List_funds$QUOTE_END[ff]),
+                                     CASH_WITHDRAWAL=ifelse(is.na(List_funds$CASH_WITHDRAWAL[ff]),0,List_funds$CASH_WITHDRAWAL[ff]),
+                                     INVESTMENT_RISK=INVESTMENT_RISK,
+                                     INCOME_TAX=0)
       
       if(ff==1 & ddd==6){Tabela_Resumo<-Tabela_Resumo00
       }else{
@@ -166,7 +184,7 @@ for (ff in 1:nrow(List_funds)) {
    }
   }
 
-}
+
 
 
 #Tabela_Resumo<-`2023-08-28 - Desempenho Fundos BB EST 01 e 03`
@@ -174,12 +192,13 @@ for (ff in 1:nrow(List_funds)) {
 sum((Tabela_Resumo$`Tempo de Investimento (anos)`/sum(Tabela_Resumo$`Tempo de Investimento (anos)`))*Tabela_Resumo$`Rendimento por Ano`)
 sum((Tabela_Resumo$`Tempo Do Fundo`/sum(Tabela_Resumo$`Tempo Do Fundo`))*Tabela_Resumo$`Redimento do Fundo (por ano)`)
 
-saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," - Desempenho Fundos BB EST 01 e 03.rds"))
+saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," -D ALL YEARS Desempenho Fundos BB EST 01 e 03.rds"))
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 # Análise dos melhores parametros
 
+Tabela_Resumo <-`2023-08-31 - ALL TIME Desempenho Fundos BB EST 01 e 03`
 # Listar fundos
 List_funds <- unique(Tabela_Resumo$Fundo)
 List_funds
@@ -188,6 +207,7 @@ for (fl in 1:length(List_funds)) {
   
     print(List_funds[fl])
     peak_DF<-Tabela_Resumo[Tabela_Resumo$Fundo==List_funds[fl],]
+    
   
     for (eest in c(1,3)) {
     peak_DF_03<-peak_DF[peak_DF$Estratégia==eest,]
@@ -214,7 +234,8 @@ for (fl in 1:length(List_funds)) {
     #ggplot(peak_DF_03, aes(x=Trend_Days, y=Redimento)) + geom_point() + geom_smooth(method="lm", formula= y ~ poly(x, 20, raw=TRUE))
     
     
-    Best_Parameters00<- data.frame("Fund"= List_funds[fl],
+    Best_Parameters00<- data.frame("ID"=peak_DF$ID[1],
+                                   "Fund"= List_funds[fl],
                                    "Strategy" = eest,
                                    "Time Days"= round(max_day,0),
                                    "Expected Yield Year"= round(max_rendimento,2))
@@ -233,9 +254,9 @@ Chosen_Parameters<- Best_Parameters %>%
   top_n(1, Expected.Yield.Year) %>%
   ungroup()
 
-mean(df_max_rendimento$Expected.Yield.Year)
+mean(Chosen_Parameters$Expected.Yield.Year)
 
-saveRDS(Chosen_Parameters,paste0("Results_Analyzes/Chosen_Parameters.rds"))
-write.csv2(Chosen_Parameters,paste0("Results_Analyzes/Chosen_Parameters.csv"))
+saveRDS(Chosen_Parameters,paste0("Results_Analyzes/",Sys.Date()," Chosen_Parameters.rds"))
+write.csv2(Chosen_Parameters,paste0("Results_Analyzes/",Sys.Date()," Chosen_Parameters.csv"))
 
 

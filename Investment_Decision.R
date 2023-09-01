@@ -25,6 +25,8 @@ for (ff in 1:nrow(List_funds)) {
   if(!is.na(List_funds$Nome_Arquivo[ff])){
     #ff<-2
     ID00<-List_funds$ID[ff]
+    INVESTMENT_RISK<-List_funds$INVESTMENT_RISK[ff]
+    
     print(paste("Linha:",ff,List_funds$ID[ff],List_funds$Nome_Do_Fundo[ff]))
     Link_Read<-paste0("Quote_History_BB/",List_funds$Nome_Arquivo[ff],".xlsx")
     
@@ -159,9 +161,20 @@ for (ff in 1:nrow(List_funds)) {
         EST_01<-ifelse(tab_price$status[nrow(tab_price)]=="comprado","comprado","neutro")
         EST_03<-ifelse(tab_price$status[nrow(tab_price)]=="comprado" & tab_price$Signal_Money[nrow(tab_price)] == "Cash in","comprado","neutro")
         
+        
+        
         print("concluido etapa 01")
-        Tabela_Resumo00<-Result_Invest(tab_price,eest,ddd,ID=ID00)
-        #
+        Tabela_Resumo00<-Result_Invest(INVESTMENT_TABLE=tab_price,
+                                       STRATEGY=eest,
+                                       TREND_TIME=ddd,
+                                       IDENTIFICATION=ID00,
+                                       ANALYSIS_TIME=NA,
+                                       QUOTE_START=ifelse(is.na(List_funds$QUOTE_START[ff]),0,List_funds$QUOTE_START[ff]),
+                                       QUOTE_END=ifelse(is.na(List_funds$QUOTE_END[ff]),0,List_funds$QUOTE_END[ff]),
+                                       CASH_WITHDRAWAL=ifelse(is.na(List_funds$CASH_WITHDRAWAL[ff]),0,List_funds$CASH_WITHDRAWAL[ff]),
+                                       INVESTMENT_RISK=INVESTMENT_RISK,
+                                       INCOME_TAX=0)
+        
         
         if(ff==1){Tabela_Resumo<-Tabela_Resumo00
         }else{
@@ -176,6 +189,6 @@ for (ff in 1:nrow(List_funds)) {
 sum((Tabela_Resumo$`Tempo de Investimento (anos)`/sum(Tabela_Resumo$`Tempo de Investimento (anos)`))*Tabela_Resumo$`Rendimento por Ano`)
 sum((Tabela_Resumo$`Tempo Do Fundo`/sum(Tabela_Resumo$`Tempo Do Fundo`))*Tabela_Resumo$`Redimento do Fundo (por ano)`)
 
-saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date(),"Investiment_Decisionrr.rds"))
+saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date(),"Investiment_Decisionr.rds"))
 
 
