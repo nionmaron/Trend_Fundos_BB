@@ -13,9 +13,19 @@ classify_rendimento <- function(Rendimento,Rendimento_Referencia,Redimento_Fundo
 
 # classify_rendimento(2.2,6,3)
 
-Result_Invest<- function(INVESTMENT_TABLE,STRATEGY,TREND_TIME,IDENTIFICATION=NA,ANALYSIS_TIME=NA,QUOTE_START=0,QUOTE_END=0,CASH_WITHDRAWAL=0,INVESTMENT_RISK="unknown",INCOME_TAX="unknown"){
+Result_Invest<- function(INVESTMENT_TABLE,
+                         FUND_NAME=NA,
+                         STRATEGY,TREND_TIME,
+                         IDENTIFICATION=NA,
+                         ANALYSIS_TIME=NA,
+                         QUOTE_START=0,
+                         QUOTE_END=0,
+                         CASH_WITHDRAWAL=0,
+                         INVESTMENT_RISK="unknown",
+                         INCOME_TAX="unknown"){
   
   # Criando um exemplo de data.frame
+  
   df <- INVESTMENT_TABLE
   if(!is.na(ANALYSIS_TIME & ANALYSIS_TIME>365)){df<-df[df$Data>(Sys.Date() -ANALYSIS_TIME),]}
   
@@ -78,7 +88,7 @@ Result_Invest<- function(INVESTMENT_TABLE,STRATEGY,TREND_TIME,IDENTIFICATION=NA,
   Rendimento_Year<-round(((transacoes$acumulado_ajustado[nrow(transacoes)])^(1/sum(transacoes$tempo_anos))-1)*100,2)
   diferenca_anos <- as.numeric(difftime(max(df$Data), min(df$Data), units = "weeks") / 52.25)
   
-  Rendimento_fund<- round((((df$Cota[nrow(df)] - df$Cota[1])/df$Cota[1]+1)^(1/diferenca_anos)-1)*100,2)
+  Rendimento_fund<- round((((df$Cota[nrow(df)] - df$Cota[2])/df$Cota[1]+1)^(1/diferenca_anos)-1)*100,2)
   
   if(Rendimento_fund>0){Rendimento_fund<-Rendimento_fund*0.85}
   #plot(df$Cota)
@@ -88,6 +98,12 @@ Result_Invest<- function(INVESTMENT_TABLE,STRATEGY,TREND_TIME,IDENTIFICATION=NA,
   ss01<-df$status[nrow(df)-1]
   sm00<-df$Signal_Money[nrow(df)]
   sm01<-df$Signal_Money[nrow(df)-1]
+  
+  # parametros
+  total_linhas<-nrow(transacoes)
+  positivo<-nrow(transacoes[transacoes$valorizacao>0,])
+  if(total_linhas>1){Acerto_perc<- round(positivo/total_linhas,2)*100}
+  if(total_linhas<=1){Acerto_perc<- NA}
   
   # Start buying  / Buy  / Sell
   if(yield_rating=="Bad"){Decision<-"Sell"
@@ -108,9 +124,15 @@ Result_Invest<- function(INVESTMENT_TABLE,STRATEGY,TREND_TIME,IDENTIFICATION=NA,
     }
   }
   
+  if(Decision=="Sell"){Buy_In<-NA}
+  if(Decision=="Buy"){Buy_In<-transacoes$data_entrada[total_linhas]}
+  if(Decision=="Start buying"){Buy_In<-df$Data[nrow(df)]}
+  
   Simulation_Invest<- data_frame(
+    
     "ID"= IDENTIFICATION,
-    "Fundo"=df$Fundo[1],
+    "FUND_NAME"=FUND_NAME,
+    "Fundo"=df$CNPJ_FUNDO[1],
     "DAY_QUOTE"=paste0("D+",QUOTE_START," | D+",QUOTE_END," | D+",CASH_WITHDRAWAL),
     "Estratégia"=STRATEGY,
     "Tempo de Análise (Trend)"=TREND_TIME,
@@ -125,9 +147,11 @@ Result_Invest<- function(INVESTMENT_TABLE,STRATEGY,TREND_TIME,IDENTIFICATION=NA,
     "Last Trend Quote" = ss00,
     "Last Trend Equity" = sm00,
     "Decision"=Decision,
+    "Buy_In"=as.Date(Buy_In),
+    "Acerto_perc"=Acerto_perc,
     "Investment Risk"=INVESTMENT_RISK)
   
   return(Simulation_Invest)
-  
+
 }
 

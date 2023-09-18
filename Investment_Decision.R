@@ -12,30 +12,41 @@ rm(list = ls(all.names = TRUE)) # Limpar todos objetos do R
 getwd() # Verificar local do diretorio
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
-# 
+# ETAPA01 DOWLOA DADOS ATUALIZADOS
 
-# Funções
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+# ETAPA02 DOWLOA DADOS ATUALIZADOS
+
 source("Function_Simulation_Invest.R")
 
 # planilha Resumo
 List_funds<-read_xlsx("Quote_History_BB/#LISTA_FUNDOS.xlsx")
+List_funds<-List_funds[!is.na(List_funds$CNPJ),]
 
 # inicio Looping Análise
 for (ff in 1:nrow(List_funds)) {
   if(!is.na(List_funds$Nome_Arquivo[ff])){
-    #ff<-2
+    #ff<-1
     ID00<-List_funds$ID[ff]
     INVESTMENT_RISK<-List_funds$INVESTMENT_RISK[ff]
     
     print(paste("Linha:",ff,List_funds$ID[ff],List_funds$Nome_Do_Fundo[ff]))
-    Link_Read<-paste0("Quote_History_BB/",List_funds$Nome_Arquivo[ff],".xlsx")
+    #Link_Read<-paste0("Quote_History_BB/",List_funds$Nome_Arquivo[ff],".xlsx")
+    Link_RDS<-paste0("Quote_History_BB/",sub("/",".",List_funds$CNPJ[ff]),".rds")
     
     # ler Arquivo
-    print(Link_Read)
-    tab_price<-read_xlsx(Link_Read) %>% arrange((Data))
-    
+    #print(Link_Read)
+    print(Link_RDS)
+    #tab_price<-read_xlsx(Link_Read) %>% arrange((Data))
+    tab_price<-readRDS(Link_RDS)  %>% arrange((DT_COMPTC))
+    tab_price$Data<-tab_price$DT_COMPTC
+    tab_price$Cota<-tab_price$VL_QUOTA
+ 
     #tab_price<-read_xlsx("Quote_History_BB/BB Acoes Dividendos Midcaps FIC FI.xlsx") %>% arrange((Data))
-    tab_price$Open<-tab_price$Cota
+    tab_price$Open<-tab_price$VL_QUOTA
+    tab_price$Captação <- tab_price$CAPTC_DIA
+    tab_price$Resgate <- tab_price$RESG_DIA
     
     diferenca_anos <- as.numeric(difftime(max(tab_price$Data), min(tab_price$Data), units = "weeks") / 52.25)
     diferenca_anos
@@ -165,6 +176,7 @@ for (ff in 1:nrow(List_funds)) {
         
         print("concluido etapa 01")
         Tabela_Resumo00<-Result_Invest(INVESTMENT_TABLE=tab_price,
+                                       FUND_NAME=List_funds$Nome_Do_Fundo[ff],
                                        STRATEGY=eest,
                                        TREND_TIME=ddd,
                                        IDENTIFICATION=ID00,
@@ -185,10 +197,26 @@ for (ff in 1:nrow(List_funds)) {
   
 }
 
+Tabela_Resumo$Acerto_perc
+
+Tabela_Resumo[Tabela_Resumo$Decision!="Sell",][,c(1,2)]
 
 sum((Tabela_Resumo$`Tempo de Investimento (anos)`/sum(Tabela_Resumo$`Tempo de Investimento (anos)`))*Tabela_Resumo$`Rendimento por Ano`)
 sum((Tabela_Resumo$`Tempo Do Fundo`/sum(Tabela_Resumo$`Tempo Do Fundo`))*Tabela_Resumo$`Redimento do Fundo (por ano)`)
 
 saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date(),"Investiment_Decisionr.rds"))
 
+
+
+FUND_NAME=List_funds$Nome_Do_Fundo[ff]
+INVESTMENT_TABLE<-tab_price
+STRATEGY<-eest
+TREND_TIME<-ddd
+IDENTIFICATION<-NA
+ANALYSIS_TIME<-NA
+QUOTE_START<-0
+QUOTE_END<-0
+CASH_WITHDRAWAL<-0
+INVESTMENT_RISK<-"unknown"
+INCOME_TAX<-"unknown"
 

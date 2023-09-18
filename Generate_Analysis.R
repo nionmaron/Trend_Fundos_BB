@@ -33,7 +33,7 @@ for (ff in 1:nrow(List_funds)) {
     tab_price<-read_xlsx(Link_Read) %>% arrange((Data))
     
     
-    tab_price<-tab_price[tab_price$Data>(Sys.Date() -5*365 -90),]}
+    tab_price<-tab_price[tab_price$Data>(Sys.Date() -10*365 -90),]
     
     #tab_price<-read_xlsx("Quote_History_BB/BB Acoes Dividendos Midcaps FIC FI.xlsx") %>% arrange((Data))
     tab_price$Open<-tab_price$Cota
@@ -183,7 +183,7 @@ for (ff in 1:nrow(List_funds)) {
     }
    }
   }
-
+}
 
 
 
@@ -192,7 +192,10 @@ for (ff in 1:nrow(List_funds)) {
 sum((Tabela_Resumo$`Tempo de Investimento (anos)`/sum(Tabela_Resumo$`Tempo de Investimento (anos)`))*Tabela_Resumo$`Rendimento por Ano`)
 sum((Tabela_Resumo$`Tempo Do Fundo`/sum(Tabela_Resumo$`Tempo Do Fundo`))*Tabela_Resumo$`Redimento do Fundo (por ano)`)
 
-saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," -D ALL YEARS Desempenho Fundos BB EST 01 e 03.rds"))
+saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date(),"  10 YEARS Desempenho Fundos BB EST 01 e 03.rds"))
+
+#Sys.sleep(60*10)
+#system("shutdown /s /t 1")
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
