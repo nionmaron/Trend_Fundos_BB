@@ -1,4 +1,5 @@
 
+# Investment Fund Analysis Project of Banco do Brasil
 
 library(readxl)
 library(tseries)
@@ -6,17 +7,94 @@ library(Kendall)
 library(dplyr)
 library(lubridate)
 library(ggplot2)
+library(httr)
+library(magrittr)
+library(xml2)
+library(rvest)
 
 # Limpeza dos dados
 rm(list = ls(all.names = TRUE)) # Limpar todos objetos do R
 getwd() # Verificar local do diretorio
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
-# ETAPA01 DOWLOA DADOS ATUALIZADOS
+# ETAPA01 DOWLOAD DADOS ATUALIZADOS
 
+url_raw <- "https://dados.cvm.gov.br/dados/FI/DOC/INF_DIARIO/DADOS/"
+output_file <- "informe_diario.zip"
+
+zip_links <- httr::GET(url_raw) %>% 
+  httr::content("text") 
+
+zip_links2<-zip_links %>% 
+  xml2::read_html() %>% 
+  rvest::html_nodes("a") %>% 
+  rvest::html_attr("href")
+
+zip_links <- zip_links2[which(grepl(x = zip_links2, pattern = "*.zip"))]
+
+if(length(zip_links)>1){
+  print(" Dowload e Leitura")
+  
+  penultimo_Zip <- zip_links[length(zip_links)-1]
+  ultimo_zip    <- zip_links[length(zip_links)]
+
+  download_link00 <- paste0(url_raw, penultimo_Zip )
+  download_link01 <- paste0(url_raw, ultimo_zip)
+  
+  download.file(download_link00, destfile = penultimo_Zip )
+  download.file(download_link01, destfile = ultimo_zip )
+  
+  # Especifique o nome do arquivo CSV dentro do arquivo ZIP
+  nome_arquivo_csv00 <- sub(".zip",".csv",penultimo_Zip)
+  nome_arquivo_csv01 <- sub(".zip",".csv",ultimo_zip)
+  
+  # Descompacte o arquivo ZIP em um diretório temporário
+  temp_dir <- tempdir()
+  unzip(penultimo_Zip, exdir = temp_dir)
+  unzip(ultimo_zip, exdir = temp_dir)
+  
+  # Leia o arquivo CSV descompactado
+  caminho_arquivo_csv00 <- file.path(temp_dir, nome_arquivo_csv00)
+  caminho_arquivo_csv01 <- file.path(temp_dir, nome_arquivo_csv01)
+  
+  dados00 <- read.csv2(caminho_arquivo_csv00)
+  dados01 <- read.csv2(caminho_arquivo_csv01)
+  dados<-rbind(dados00,dados01)
+}
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
-# ETAPA02 DOWLOA DADOS ATUALIZADOS
+# ETAPA02 ATUALIZAR BANCO DE DADOS
+Choose_List_RDS<-list.files("Quote_History_BB/",pattern = ".rds")
+nnn<-length(Choose_List_RDS)
+nnn
+
+for (RR in 1:nnn) {
+  #RR<-1
+  print(paste(RR,":",nnn," |",Choose_List_RDS[RR]))
+  Read_Link<-(paste0("Quote_History_BB/",Choose_List_RDS[RR]))
+  tabela<-readRDS(Read_Link)
+  
+  date_filter<-max(tabela$DT_COMPTC)
+  search_cnpj<-tabela$CNPJ_FUNDO[1]
+  
+  tab000<-dados[dados$CNPJ_FUNDO==search_cnpj,]
+  tab001<-tab000[tab000$DT_COMPTC>date_filter,]
+  tab001<-tab001[,2:9]
+  if(nrow(tab001)>0){
+    print(paste(search_cnpj," - Tabela atualizada a partir da data:",date_filter))
+    tabela000<-rbind(tabela,tab001)
+    # organizar
+    tabela000<-tabela000[order(tabela000$DT_COMPTC),] 
+    saveRDS(tabela000,Read_Link)
+  }
+}
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+# ETAPA03 PROCESSAR DADOS
+
+# Limpeza dos dados
+rm(list = ls(all.names = TRUE)) # Limpar todos objetos do R
+getwd() # Verificar local do diretorio
 
 source("Function_Simulation_Invest.R")
 
@@ -40,11 +118,15 @@ for (ff in 1:nrow(List_funds)) {
     print(Link_RDS)
     #tab_price<-read_xlsx(Link_Read) %>% arrange((Data))
     tab_price<-readRDS(Link_RDS)  %>% arrange((DT_COMPTC))
+    tab_price$VL_QUOTA<-as.numeric(tab_price$VL_QUOTA)
+    tab_price$CAPTC_DIA<-as.numeric(tab_price$CAPTC_DIA)
+    tab_price$RESG_DIA<-as.numeric(tab_price$RESG_DIA)
+    
     tab_price$Data<-tab_price$DT_COMPTC
     tab_price$Cota<-tab_price$VL_QUOTA
  
     #tab_price<-read_xlsx("Quote_History_BB/BB Acoes Dividendos Midcaps FIC FI.xlsx") %>% arrange((Data))
-    tab_price$Open<-tab_price$VL_QUOTA
+    tab_price$Open<-(tab_price$VL_QUOTA)
     tab_price$Captação <- tab_price$CAPTC_DIA
     tab_price$Resgate <- tab_price$RESG_DIA
     
@@ -197,17 +279,21 @@ for (ff in 1:nrow(List_funds)) {
   
 }
 
-Tabela_Resumo$Acerto_perc
+#--------------------------------------------------------------------------------------------------------------------------------------------
+# ETAPA04 SEPRAR E SALVAR OS DADOS
 
-Tabela_Resumo[Tabela_Resumo$Decision!="Sell",][,c(1,2)]
-
+Oportunidades<-Tabela_Resumo[Tabela_Resumo$Decision!="Sell",][,c(1,2)]
+Oportunidades
 sum((Tabela_Resumo$`Tempo de Investimento (anos)`/sum(Tabela_Resumo$`Tempo de Investimento (anos)`))*Tabela_Resumo$`Rendimento por Ano`)
 sum((Tabela_Resumo$`Tempo Do Fundo`/sum(Tabela_Resumo$`Tempo Do Fundo`))*Tabela_Resumo$`Redimento do Fundo (por ano)`)
 
-saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date(),"Investiment_Decisionr.rds"))
+saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," Investiment_Decision.rds"))
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+# ETAPA05 ENVIAR PARA TELEGRAM
 
 
-
+#--------------------------------------------------------------------------------------------------------------------------------------------
 FUND_NAME=List_funds$Nome_Do_Fundo[ff]
 INVESTMENT_TABLE<-tab_price
 STRATEGY<-eest
