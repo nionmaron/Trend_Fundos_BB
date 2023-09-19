@@ -127,6 +127,7 @@ Result_Invest<- function(INVESTMENT_TABLE,
   if(Decision=="Sell"){Buy_In<-NA}
   if(Decision=="Buy"){Buy_In<-transacoes$data_entrada[total_linhas]}
   if(Decision=="Start buying"){Buy_In<-df$Data[nrow(df)]}
+
   
   Simulation_Invest<- data_frame(
     

@@ -16,6 +16,21 @@ library(rvest)
 rm(list = ls(all.names = TRUE)) # Limpar todos objetos do R
 getwd() # Verificar local do diretorio
 
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+# ETAPA00 PASTA DO BANCO DE DADOS
+
+diretorio_projeto <- getwd()
+
+# Verifique se a pasta "Quote_History_FI" existe no diretório do projeto
+if (!dir.exists(file.path(diretorio_projeto, "Quote_History_FI"))) {
+  # Se não existe, crie a pasta
+  dir.create(file.path(diretorio_projeto, "Quote_History_FI"))
+  cat("Pasta 'Quote_History_FI' criada com sucesso!\n")
+} else {
+  cat("A pasta 'Quote_History_FI' já existe.\n")
+}
+
 #--------------------------------------------------------------------------------------------------------------------------------------------
 # ETAPA01 DOWLOAD DADOS ATUALIZADOS
 
@@ -60,6 +75,15 @@ if(length(zip_links)>1){
   dados00 <- read.csv2(caminho_arquivo_csv00)
   dados01 <- read.csv2(caminho_arquivo_csv01)
   dados<-rbind(dados00,dados01)
+  
+  # formatar
+  dados$DT_COMPTC<-as.Date(dados$DT_COMPTC)
+  dados$VL_TOTAL<-as.numeric(dados$VL_TOTAL)
+  dados$VL_QUOTA<-as.numeric(dados$VL_QUOTA)
+  dados$CAPTC_DIA<-as.numeric(dados$CAPTC_DIA)
+  dados$RESG_DIA<-as.numeric(dados$RESG_DIA)
+  dados$NR_COTST<-as.numeric(dados$NR_COTST)
+  
 }
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
@@ -85,6 +109,15 @@ for (RR in 1:nnn) {
     tabela000<-rbind(tabela,tab001)
     # organizar
     tabela000<-tabela000[order(tabela000$DT_COMPTC),] 
+    
+    # formatar
+    tabela000$DT_COMPTC<-as.Date(tabela000$DT_COMPTC)
+    tabela000$VL_TOTAL<-as.numeric(tabela000$VL_TOTAL)
+    tabela000$VL_QUOTA<-as.numeric(tabela000$VL_QUOTA)
+    tabela000$CAPTC_DIA<-as.numeric(tabela000$CAPTC_DIA)
+    tabela000$RESG_DIA<-as.numeric(tabela000$RESG_DIA)
+    tabela000$NR_COTST<-as.numeric(tabela000$NR_COTST)
+    
     saveRDS(tabela000,Read_Link)
   }
 }
@@ -105,7 +138,7 @@ List_funds<-List_funds[!is.na(List_funds$CNPJ),]
 # inicio Looping Análise
 for (ff in 1:nrow(List_funds)) {
   if(!is.na(List_funds$Nome_Arquivo[ff])){
-    #ff<-1
+    #ff<-26
     ID00<-List_funds$ID[ff]
     INVESTMENT_RISK<-List_funds$INVESTMENT_RISK[ff]
     
@@ -118,6 +151,7 @@ for (ff in 1:nrow(List_funds)) {
     print(Link_RDS)
     #tab_price<-read_xlsx(Link_Read) %>% arrange((Data))
     tab_price<-readRDS(Link_RDS)  %>% arrange((DT_COMPTC))
+    tab_price<-tab_price[tab_price$VL_QUOTA>0,]
     tab_price$VL_QUOTA<-as.numeric(tab_price$VL_QUOTA)
     tab_price$CAPTC_DIA<-as.numeric(tab_price$CAPTC_DIA)
     tab_price$RESG_DIA<-as.numeric(tab_price$RESG_DIA)
@@ -255,6 +289,8 @@ for (ff in 1:nrow(List_funds)) {
         EST_03<-ifelse(tab_price$status[nrow(tab_price)]=="comprado" & tab_price$Signal_Money[nrow(tab_price)] == "Cash in","comprado","neutro")
         
         
+        List_funds$Nome_Do_Fundo[ff]
+        ANALYSIS_TIME
         
         print("concluido etapa 01")
         Tabela_Resumo00<-Result_Invest(INVESTMENT_TABLE=tab_price,
@@ -280,20 +316,52 @@ for (ff in 1:nrow(List_funds)) {
 }
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
-# ETAPA04 SEPRAR E SALVAR OS DADOS
+# ETAPA04 SALVAR OS DADOS
 
-Oportunidades<-Tabela_Resumo[Tabela_Resumo$Decision!="Sell",][,c(1,2)]
-Oportunidades
+# periodo investido - média geral
 sum((Tabela_Resumo$`Tempo de Investimento (anos)`/sum(Tabela_Resumo$`Tempo de Investimento (anos)`))*Tabela_Resumo$`Rendimento por Ano`)
+
+# periodo do fundo - média geral
 sum((Tabela_Resumo$`Tempo Do Fundo`/sum(Tabela_Resumo$`Tempo Do Fundo`))*Tabela_Resumo$`Redimento do Fundo (por ano)`)
 
 saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," Investiment_Decision.rds"))
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+# ETAPA05 GERAR RELATÓRIO
+library(grid)
+library(gridExtra)
+
+names(Tabela_Resumo)
+Colunas_select<-c("FUND_NAME","Estratégia","Decision","Buy_In","Investment Risk")
+Comprados<-Tabela_Resumo[Tabela_Resumo$Decision!="Sell",][,Colunas_select]
+
+
+{
+# Abra um arquivo PDF para salvar a tabela
+pdf( paste0("Results_Analyzes/",Sys.Date()," Resultados122.pdf"),bg = "pink",width = 8, height = 12) #paper="a4"
+  
+  # Adicione texto ao PDF usando funções de gráficos regulares (adicionando um título)
+  title <- "Relatório de Têndencia de Alta \n Fundos Selecionados Banco do Brasil"
+  plot.new()
+  text(0.5, 0.9, title, cex = 2, adj = 0.5)
+  
+  # Crie uma tabela a partir do dataframe
+  grid.table(Comprados[])
+  
+  # Feche o dispositivo PDF
+  dev.off()
+}
+
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 # ETAPA05 ENVIAR PARA TELEGRAM
 
 
+
 #--------------------------------------------------------------------------------------------------------------------------------------------
+# RASCUNHO
+
 FUND_NAME=List_funds$Nome_Do_Fundo[ff]
 INVESTMENT_TABLE<-tab_price
 STRATEGY<-eest
@@ -302,7 +370,7 @@ IDENTIFICATION<-NA
 ANALYSIS_TIME<-NA
 QUOTE_START<-0
 QUOTE_END<-0
-CASH_WITHDRAWAL<-0
+CASH_WITHDRAWAL<-2
 INVESTMENT_RISK<-"unknown"
 INCOME_TAX<-"unknown"
 
