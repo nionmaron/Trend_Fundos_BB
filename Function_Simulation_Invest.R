@@ -133,7 +133,7 @@ Result_Invest<- function(INVESTMENT_TABLE,
     
     "ID"= IDENTIFICATION,
     "FUND_NAME"=FUND_NAME,
-    "Fundo"=df$CNPJ_FUNDO[1],
+    "CNPJ"=df$CNPJ_FUNDO[1],
     "DAY_QUOTE"=paste0("D+",QUOTE_START," | D+",QUOTE_END," | D+",CASH_WITHDRAWAL),
     "Estratégia"=STRATEGY,
     "Tempo de Análise (Trend)"=TREND_TIME,

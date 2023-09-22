@@ -46,7 +46,7 @@ zip_links2<-zip_links %>%
   rvest::html_attr("href")
 
 zip_links <- zip_links2[which(grepl(x = zip_links2, pattern = "*.zip"))]
-
+zip_links
 if(length(zip_links)>1){
   print(" Dowload e Leitura")
   
@@ -80,6 +80,7 @@ if(length(zip_links)>1){
   dados$DT_COMPTC<-as.Date(dados$DT_COMPTC)
   dados$VL_TOTAL<-as.numeric(dados$VL_TOTAL)
   dados$VL_QUOTA<-as.numeric(dados$VL_QUOTA)
+  dados$VL_PATRIM_LIQ<-as.numeric(dados$VL_PATRIM_LIQ)
   dados$CAPTC_DIA<-as.numeric(dados$CAPTC_DIA)
   dados$RESG_DIA<-as.numeric(dados$RESG_DIA)
   dados$NR_COTST<-as.numeric(dados$NR_COTST)
@@ -114,6 +115,7 @@ for (RR in 1:nnn) {
     tabela000$DT_COMPTC<-as.Date(tabela000$DT_COMPTC)
     tabela000$VL_TOTAL<-as.numeric(tabela000$VL_TOTAL)
     tabela000$VL_QUOTA<-as.numeric(tabela000$VL_QUOTA)
+    tabela000$VL_PATRIM_LIQ<-as.numeric(tabela000$VL_PATRIM_LIQ)
     tabela000$CAPTC_DIA<-as.numeric(tabela000$CAPTC_DIA)
     tabela000$RESG_DIA<-as.numeric(tabela000$RESG_DIA)
     tabela000$NR_COTST<-as.numeric(tabela000$NR_COTST)
@@ -137,7 +139,7 @@ List_funds<-List_funds[!is.na(List_funds$CNPJ),]
 
 # inicio Looping Análise
 for (ff in 1:nrow(List_funds)) {
-  if(!is.na(List_funds$Nome_Arquivo[ff])){
+  if(!is.na(List_funds$CNPJ[ff])){
     #ff<-26
     ID00<-List_funds$ID[ff]
     INVESTMENT_RISK<-List_funds$INVESTMENT_RISK[ff]
@@ -145,6 +147,8 @@ for (ff in 1:nrow(List_funds)) {
     print(paste("Linha:",ff,List_funds$ID[ff],List_funds$Nome_Do_Fundo[ff]))
     #Link_Read<-paste0("Quote_History_BB/",List_funds$Nome_Arquivo[ff],".xlsx")
     Link_RDS<-paste0("Quote_History_BB/",sub("/",".",List_funds$CNPJ[ff]),".rds")
+    
+    
     
     # ler Arquivo
     #print(Link_Read)
@@ -290,7 +294,7 @@ for (ff in 1:nrow(List_funds)) {
         
         
         List_funds$Nome_Do_Fundo[ff]
-        ANALYSIS_TIME
+        
         
         print("concluido etapa 01")
         Tabela_Resumo00<-Result_Invest(INVESTMENT_TABLE=tab_price,
@@ -328,18 +332,17 @@ saveRDS(Tabela_Resumo,paste0("PerformanceStrategies/",Sys.Date()," Investiment_D
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
-# ETAPA05 GERAR RELATÓRIO
+# ETAPA05 GERAR RELATÓRIO - OPORTUNIDADES
 library(grid)
 library(gridExtra)
 
 names(Tabela_Resumo)
-Colunas_select<-c("FUND_NAME","Estratégia","Decision","Buy_In","Investment Risk")
+Colunas_select<-c("FUND_NAME","CNPJ","Estratégia","Decision","Buy_In","Investment Risk")
 Comprados<-Tabela_Resumo[Tabela_Resumo$Decision!="Sell",][,Colunas_select]
-
 
 {
 # Abra um arquivo PDF para salvar a tabela
-pdf( paste0("Results_Analyzes/",Sys.Date()," Resultados122.pdf"),bg = "pink",width = 8, height = 12) #paper="a4"
+pdf( paste0("Results_Analyzes/",Sys.Date()," Resultados.pdf"),bg = "pink",width = 8, height = 12) #paper="a4"
   
   # Adicione texto ao PDF usando funções de gráficos regulares (adicionando um título)
   title <- "Relatório de Têndencia de Alta \n Fundos Selecionados Banco do Brasil"
