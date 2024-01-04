@@ -1,16 +1,18 @@
 
 # Investment Fund Analysis Project of Banco do Brasil
 
-library(readxl)
-library(tseries)
-library(Kendall)
-library(dplyr)
-library(lubridate)
-library(ggplot2)
-library(httr)
-library(magrittr)
-library(xml2)
-library(rvest)
+{
+  library(readxl)
+  library(tseries)
+  library(Kendall)
+  library(dplyr)
+  library(lubridate)
+  library(ggplot2)
+  library(httr)
+  library(magrittr)
+  library(xml2)
+  library(rvest)
+}
 
 # Limpeza dos dados
 rm(list = ls(all.names = TRUE)) # Limpar todos objetos do R
@@ -138,7 +140,7 @@ List_funds<-read_xlsx("Quote_History_BB/#LISTA_FUNDOS.xlsx")
 List_funds<-List_funds[!is.na(List_funds$CNPJ),]
 
 # inicio Looping Análise
-for (ff in 1:nrow(List_funds)) {
+for (ff in 175:nrow(List_funds)) {
   if(!is.na(List_funds$CNPJ[ff])){
     #ff<-26
     ID00<-List_funds$ID[ff]
@@ -194,6 +196,7 @@ for (ff in 1:nrow(List_funds)) {
         tab_price$Signal_Money  <-NA
         
         # Gerar analise da tendencia
+        if(nrow(tab_price)>61){
         for (ii in 61: nrow(tab_price)) {
           
           result      <- MannKendall(tab_price$Open[(ii-ddd):(ii)])
@@ -292,13 +295,9 @@ for (ff in 1:nrow(List_funds)) {
         EST_01<-ifelse(tab_price$status[nrow(tab_price)]=="comprado","comprado","neutro")
         EST_03<-ifelse(tab_price$status[nrow(tab_price)]=="comprado" & tab_price$Signal_Money[nrow(tab_price)] == "Cash in","comprado","neutro")
         
-        
-        List_funds$Nome_Do_Fundo[ff]
-        
-        
         print("concluido etapa 01")
         Tabela_Resumo00<-Result_Invest(INVESTMENT_TABLE=tab_price,
-                                       FUND_NAME=List_funds$Nome_Do_Fundo[ff],
+                                       FUND_NAME=List_funds$DENOM_SOCIAL[ff],
                                        STRATEGY=eest,
                                        TREND_TIME=ddd,
                                        IDENTIFICATION=ID00,
@@ -314,11 +313,12 @@ for (ff in 1:nrow(List_funds)) {
         }else{
           Tabela_Resumo<-rbind(Tabela_Resumo,Tabela_Resumo00)
         }
-
+      } # limitar linhas maior que 61
   }
   
 }
 
+mean(Tabela_Resumo$`Rendimento por Mês`)
 #--------------------------------------------------------------------------------------------------------------------------------------------
 # ETAPA04 SALVAR OS DADOS
 
@@ -339,6 +339,7 @@ library(gridExtra)
 names(Tabela_Resumo)
 Colunas_select<-c("FUND_NAME","CNPJ","Estratégia","Decision","Buy_In","Investment Risk")
 Comprados<-Tabela_Resumo[Tabela_Resumo$Decision!="Sell",][,Colunas_select]
+Comprados
 
 {
 # Abra um arquivo PDF para salvar a tabela

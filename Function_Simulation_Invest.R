@@ -105,6 +105,8 @@ Result_Invest<- function(INVESTMENT_TABLE,
   if(total_linhas>1){Acerto_perc<- round(positivo/total_linhas,2)*100}
   if(total_linhas<=1){Acerto_perc<- NA}
   
+  if(nrow(transacoes)>0){saveRDS(transacoes,paste0("HistoricalBuySell/",sub("/",".",df$CNPJ_FUNDO[1])," trend",TREND_TIME,"_hist_buy.rds"))}
+
   # Start buying  / Buy  / Sell
   if(yield_rating=="Bad"){Decision<-"Sell"
   }else{
